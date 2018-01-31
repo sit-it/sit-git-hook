@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+### CONFIGURATION
+
+MASTER_REPO=
+MASTER_BRANCH=master
+
+###
+
+while read oldrev newrev refname; do
+
+    if [ ${newrev} ==  "0000000000000000000000000000000000000000" ]; then
+        # Branch deletion, proceed
+        exit 0
+    fi
+
+    echo "Pushing issue ref ${refname} to master"
+    git push ${MASTER_REPO} ${newrev}:master || exit 1
+
+done

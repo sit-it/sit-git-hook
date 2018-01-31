@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+### CONFIGURATION
+
+MASTER_REPO=
+MASTER_BRANCH=master
+
+###
+
+while read oldrev newrev refname; do
+
+    if [ ${newrev} ==  "0000000000000000000000000000000000000000" ]; then
+        # Branch deletion, proceed
+        exit 0
+    fi
+
+    if [ ${oldrev} != "0000000000000000000000000000000000000000" ]; then
+        echo "Only new branches permitted"
+        exit 1
+    fi
+
+    echo "Cloning master repo $MASTER_REPO:"
+
+    tempdir=`mktemp -d`
+
+    env -u GIT_QUARANTINE_PATH -u GIT_DIR -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git clone ${MASTER_REPO} ${tempdir} || exit 1
+    env -u GIT_QUARANTINE_PATH git push ${tempdir} ${newrev}:${refname} || exit 1
+
+    files=`GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git diff  --name-only origin/${MASTER_BRANCH} ${refname}`
+
+    for file in ${files}; do
+
+        if [ ${file:0:11} != '.sit/issues' ]; then
+            echo ${file} is outside of .sit/issues
+            exit 1
+        fi
+
+        issue=`echo ${file} | cut -d'/' -f 3`
+        record=`echo ${file} | cut -d'/' -f 4`
+        record_path=`echo ${file} | cut -d'/' -f 1-4`
+        if [ -d ${tempdir}/${record_path} ]; then
+            echo Record ${issue}/${record} already exists in the master repository
+            exit 1
+        fi
+
+        if [ -f ${tempdir}/${file} ]; then
+            echo File ${file} already exists in the master repository
+            exit 1
+        fi
+    done
+
+done
