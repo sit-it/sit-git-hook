@@ -31,7 +31,7 @@ while read -r oldrev newrev refname; do
     for file in ${files}; do
 
         if [ "${file:0:11}" != '.sit/issues' ]; then
-            echo "${file} is outside of .sit/issues"
+            echo "${file}" is outside of .sit/issues
             exit 1
         fi
 
