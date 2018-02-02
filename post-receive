@@ -3,18 +3,18 @@
 ### CONFIGURATION
 
 MASTER_REPO=
-MASTER_BRANCH=master
+MASTER_BRANCH=master # unused and unexported
 
 ###
 
-while read oldrev newrev refname; do
+while read -r _ newrev refname; do
 
-    if [ ${newrev} ==  "0000000000000000000000000000000000000000" ]; then
+    if [ "${newrev}" ==  "0000000000000000000000000000000000000000" ]; then
         # Branch deletion, proceed
         exit 0
     fi
 
     echo "Pushing issue ref ${refname} to master"
-    git push ${MASTER_REPO} ${newrev}:master || exit 1
+    git push "${MASTER_REPO}" "${newrev}:master" || exit 1
 
 done
