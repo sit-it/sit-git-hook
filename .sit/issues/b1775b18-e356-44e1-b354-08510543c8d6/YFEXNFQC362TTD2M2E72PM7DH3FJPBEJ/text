@@ -1,0 +1,5 @@
+Every time the hooks get updated, delivering them to the
+receiving repository means configuration inside of them
+will get overwritten.
+
+Proposed solution: externalize configuration
