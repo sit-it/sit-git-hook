@@ -23,10 +23,14 @@ while read -r oldrev newrev refname; do
 
     tempdir=$(mktemp -d)
 
-    env -u GIT_QUARANTINE_PATH -u GIT_DIR -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git clone ${MASTER_REPO} "${tempdir}" || exit 1
-    env -u GIT_QUARANTINE_PATH git push "${tempdir}" "${newrev}":"${refname}" || exit 1
+    target_branch="check-${newrev}"
 
-    files=$(GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git diff  --name-only origin/${MASTER_BRANCH} "${refname}")
+    env -u GIT_QUARANTINE_PATH -u GIT_DIR -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git clone ${MASTER_REPO} "${tempdir}" || exit 1
+    env -u GIT_QUARANTINE_PATH git push "${tempdir}" "${newrev}":"refs/heads/${target_branch}" || exit 1
+    cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git -c user.name="sit-git-hook" -c user.email="git@sit-it.org" rebase "${MASTER_BRANCH}" "${target_branch}"
+    cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git checkout "${MASTER_BRANCH}"
+
+    files=$(GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git diff --name-only "origin/${MASTER_BRANCH}" "${target_branch}")
 
     for file in ${files}; do
 

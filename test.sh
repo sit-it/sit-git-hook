@@ -13,6 +13,8 @@ master="$(mktemp -d)"
 bare_master="$(mktemp -d)/bare"
 inbox="$(mktemp -d)/inbox"
 submitter="$(mktemp -d)/fork"
+submitter_2="$(mktemp -d)/fork"
+
 
 # Create master
 pushd "$(pwd)" >/dev/null || exit 2;
@@ -35,6 +37,9 @@ sed -i 's MASTER_REPO= MASTER_REPO=file://'"${bare_master}"' ' "${inbox}/.git/ho
 
 # Clone to submitter
 git clone "${bare_master}" "${submitter}"
+
+# Prepare a separate clone (to be intentionally outdated)
+git clone "${bare_master}" "${submitter_2}"
 
 # Good update
 pushd "$(pwd)" >/dev/null || exit 2;
@@ -99,6 +104,30 @@ git commit -m "adding file"
 git push sit adding_file && (echo "Pushing bad commit succeeded"; exit 1)
 echo "|   SUCCESS: Adding file to an existing record didn't go through"
 popd >/dev/null || exit 2
+
+# Adding an issue from a non-updated master
+pushd "$(pwd)" >/dev/null || exit 2; cd "${submitter_2}" || exit 2
+git remote add sit "${inbox}"
+git checkout -b good
+new_issue=$(${sit} issue)
+new_record=$(${sit} record -t test "${new_issue}")
+git add ".sit/issues/${new_issue}"
+git commit -m "good"
+git push sit "good:${new_issue}" || (echo "Pushing good commit from an outdated master fork failed"; exit 1)
+popd >/dev/null || exit 2
+
+pushd "$(pwd)" >/dev/null || exit 2; cd "${master}" || exit 2
+git pull "${bare_master}" master
+if [ -d .sit/issues/${new_issue}/${new_record} ]; then
+    echo "OK"
+else
+    echo "Good commit from an outdated master fork didn't go through"
+    exit 1
+fi
+echo "|   SUCCESS: Good commit from an outdated master fork went through"
+popd >/dev/null || exit 2
+
+
 
 echo
 echo
