@@ -38,6 +38,7 @@ Add this to your gitolite rc-file:
 
 ```perl
 $RC{LOCAL_CODE} = "$rc{GL_ADMIN_BASE}/local";
+$RC{GIT_CONFIG_KEYS} = "sit\..*";
 push @{$RC{ENABLE}}, 'repo-specific-hooks';
 ```
 
@@ -52,6 +53,8 @@ and configuration updated:
 repo project-inbox
     RW      = sit-inbox
     RW+     = @admin
+    config sit.target = https://USER:TOKEN@github.com/OWNER/REPO.git
+    # config sit.targetbranch = master
     option hook.pre-receive = <pre-receive-file-name> 
     option hook.post-receive = <post-receive-file-name>
 ```
