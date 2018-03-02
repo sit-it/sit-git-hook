@@ -1,0 +1,113 @@
+From d1dbc37696bce23664238dba9a54e98dd4ca9938 Mon Sep 17 00:00:00 2001
+From: Yurii Rashkovskii <yrashk@gmail.com>
+Date: Fri, 2 Mar 2018 14:33:20 +0700
+Subject: [PATCH] Problem: post-receive repeats pre-receive's rebasing step
+
+This might be unnecessarily long as it also requires a clone
+of a remote repository.
+
+Solution: move the "push to master repository" step to pre-receive
+and eliminate the need for the post-receive hook altogether.
+---
+ README.md    |  8 ++------
+ post-receive | 29 -----------------------------
+ pre-receive  |  3 +++
+ test.sh      |  2 +-
+ 4 files changed, 6 insertions(+), 36 deletions(-)
+ delete mode 100755 post-receive
+
+diff --git a/README.md b/README.md
+index 4a13f9d..25362ae 100644
+--- a/README.md
++++ b/README.md
+@@ -13,10 +13,7 @@ down the interaction significantly.
+ 
+ This hook is aimed to solved this problem.
+ 
+-Technically speaking, it's two hooks: pre-receive
+-and post-receive.
+-
+-The first hook will validate that a new branch
++The hook will validate that a new branch
+ is being created and whatever is being pushed
+ is only new records -- not anything outside of
+ issues, not overwriting any existing files in records,
+@@ -46,7 +43,7 @@ Secondly, you need to generate a new SSH keypair. The private key
+ is to be shared to those who should be able to push
+ their records. The public one needs to be copied to `gitolite-admin/keydir`.
+ 
+-Then, hooks have to be copied into `gitolite-admin/local/hooks/repo-specific`
++Then, the hook has to be copied into `gitolite-admin/local/hooks/repo-specific`
+ and configuration updated:
+ 
+ ```
+@@ -56,6 +53,5 @@ repo project-inbox
+     config sit.target = https://USER:TOKEN@github.com/OWNER/REPO.git
+     # config sit.targetbranch = master
+     option hook.pre-receive = <pre-receive-file-name> 
+-    option hook.post-receive = <post-receive-file-name>
+ ```
+ 
+diff --git a/post-receive b/post-receive
+deleted file mode 100755
+index f91ace9..0000000
+--- a/post-receive
++++ /dev/null
+@@ -1,29 +0,0 @@
+-#!/usr/bin/env bash
+-
+-### CONFIGURATION
+-
+-TARGET_REPO=$(git config sit.target)
+-targetbranch=$(git config sit.targetbranch)
+-TARGET_BRANCH=${targetbranch:-master}
+-
+-###
+-
+-while read -r _ newrev refname; do
+-
+-    if [ "${newrev}" ==  "0000000000000000000000000000000000000000" ]; then
+-        # Branch deletion, proceed
+-        exit 0
+-    fi
+-
+-    tempdir=$(mktemp -d)
+-    target_branch="check-${newrev}"
+-     
+-    env -u GIT_QUARANTINE_PATH -u GIT_DIR -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git clone ${TARGET_REPO} "${tempdir}" || exit 1
+-    env -u GIT_QUARANTINE_PATH git push "${tempdir}" "${newrev}":"refs/heads/${target_branch}" || exit 1
+-    cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git -c user.name="sit-git-hook" -c user.email="git@sit-it.org" rebase "${TARGET_BRANCH}" "${target_branch}"
+-    cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git checkout "${TARGET_BRANCH}"
+-
+-    echo "Pushing issue ref ${refname} to target"
+-    cd "${tempdir}" && GIT_DIR=${tempdir}/.git git push "${TARGET_REPO}" "${target_branch}:master" || exit 1
+-
+-done
+diff --git a/pre-receive b/pre-receive
+index 266873b..721d56e 100755
+--- a/pre-receive
++++ b/pre-receive
+@@ -54,4 +54,7 @@ while read -r oldrev newrev refname; do
+         fi
+     done
+ 
++    echo "Pushing issue ref ${refname} to target"
++    cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git push "${TARGET_REPO}" "${target_branch}:master" || exit 1
++
+ done
+diff --git a/test.sh b/test.sh
+index 3cbcd1e..d131a0c 100755
+--- a/test.sh
++++ b/test.sh
+@@ -32,7 +32,7 @@ git clone --bare "${master}" "${bare_master}"
+ # Clone to inbox
+ git clone "${bare_master}" "${inbox}"
+ # Prepare hooks & config
+-cp pre-receive post-receive "${inbox}/.git/hooks"
++cp pre-receive "${inbox}/.git/hooks"
+ git -C ${inbox} config sit.target "file://${bare_master}"
+ 
+ # Clone to submitter
+-- 
+2.15.0
+

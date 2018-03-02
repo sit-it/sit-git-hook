@@ -1,0 +1,6 @@
+This might be unnecessarily long as it also requires a clone
+of a remote repository.
+
+Solution: move the "push to master repository" step to pre-receive
+and eliminate the need for the post-receive hook altogether.
+
