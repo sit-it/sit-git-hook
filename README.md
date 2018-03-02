@@ -13,10 +13,7 @@ down the interaction significantly.
 
 This hook is aimed to solved this problem.
 
-Technically speaking, it's two hooks: pre-receive
-and post-receive.
-
-The first hook will validate that a new branch
+The hook will validate that a new branch
 is being created and whatever is being pushed
 is only new records -- not anything outside of
 issues, not overwriting any existing files in records,
@@ -46,7 +43,7 @@ Secondly, you need to generate a new SSH keypair. The private key
 is to be shared to those who should be able to push
 their records. The public one needs to be copied to `gitolite-admin/keydir`.
 
-Then, hooks have to be copied into `gitolite-admin/local/hooks/repo-specific`
+Then, the hook has to be copied into `gitolite-admin/local/hooks/repo-specific`
 and configuration updated:
 
 ```
@@ -56,6 +53,5 @@ repo project-inbox
     config sit.target = https://USER:TOKEN@github.com/OWNER/REPO.git
     # config sit.targetbranch = master
     option hook.pre-receive = <pre-receive-file-name> 
-    option hook.post-receive = <post-receive-file-name>
 ```
 
