@@ -32,7 +32,7 @@ git clone --bare "${master}" "${bare_master}"
 # Clone to inbox
 git clone "${bare_master}" "${inbox}"
 # Prepare hooks & config
-cp pre-receive post-receive "${inbox}/.git/hooks"
+cp pre-receive "${inbox}/.git/hooks"
 git -C ${inbox} config sit.target "file://${bare_master}"
 
 # Clone to submitter

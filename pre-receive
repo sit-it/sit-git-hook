@@ -54,4 +54,7 @@ while read -r oldrev newrev refname; do
         fi
     done
 
+    echo "Pushing issue ref ${refname} to target"
+    cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git push "${TARGET_REPO}" "${target_branch}:master" || exit 1
+
 done
