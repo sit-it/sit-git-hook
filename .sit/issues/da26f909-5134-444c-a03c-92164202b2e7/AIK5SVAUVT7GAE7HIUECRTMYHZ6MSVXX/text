@@ -1,0 +1,9 @@
+If the URL of the target repository does not give the script push access (wrong password, no push rights), git push will print an error like this:
+
+```
+remote: Pushing issue ref refs/heads/4e9e2000-0578-48bc-9e66-14bf0f1c1939 to target
+remote: remote: Permission to sit-it/sit.git denied to sit-bot.
+remote: fatal: unable to access 'https://sit-bot:3209209332909329032092309932@github.com/sit-it/sit.git/': The requested URL returned error: 403
+```
+
+As you can see, the token (completely random number in the above example) will get exposed. Since it contains a secret token, this creates a risk of an exposure.
