@@ -27,6 +27,16 @@ while read -r oldrev newrev refname; do
     target_branch="check-${newrev}"
 
     env -u GIT_QUARANTINE_PATH -u GIT_DIR -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git clone ${TARGET_REPO} "${tempdir}" || exit 1
+    # Figure out if we're using .sit/items or deprecated .sit/issues
+    if [ -d "${tempdir}/.sit/items" ]; then
+            target=item
+            target_dir=.sit/items
+    fi
+    if [ -d "${tempdir}/.sit/issues" ]; then
+            target=issue
+            target_dir=.sit/issues
+    fi
+    target_dir_len=${#target_dir}
     env -u GIT_QUARANTINE_PATH git push "${tempdir}" "${newrev}":"refs/heads/${target_branch}" || exit 1
     cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git -c user.name="sit-git-hook" -c user.email="git@sit-it.org" rebase "${TARGET_BRANCH}" "${target_branch}"
     cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH  -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git checkout "${TARGET_BRANCH}"
@@ -35,16 +45,16 @@ while read -r oldrev newrev refname; do
 
     for file in ${files}; do
 
-        if [ "${file:0:11}" != '.sit/issues' ]; then
-            echo "${file}" is outside of .sit/issues
+        if [ "${file:0:${target_dir_len}}" != "${target_dir}" ]; then
+            echo "${file}" is outside of "${target_dir}"
             exit 1
         fi
 
-        issue=$(echo "${file}" | cut -d'/' -f 3)
+        item=$(echo "${file}" | cut -d'/' -f 3)
         record=$(echo "${file}" | cut -d'/' -f 4)
         record_path=$(echo "${file}" | cut -d'/' -f 1-4)
         if [ -d "${tempdir}/${record_path}" ]; then
-            echo "Record ${issue}/${record} already exists in the target repository"
+            echo "Record ${item}/${record} already exists in the target repository"
             exit 1
         fi
 
@@ -54,7 +64,7 @@ while read -r oldrev newrev refname; do
         fi
     done
 
-    echo "Pushing issue ref ${refname} to target"
+    echo "Pushing ${refname} to target"
     cd "${tempdir}" && GIT_DIR=${tempdir}/.git env -u GIT_QUARANTINE_PATH -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES git push "${TARGET_REPO}" "${target_branch}:master" || exit 1
 
 done
