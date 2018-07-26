@@ -1,3 +1,10 @@
+# Superseded by [sit-inbox](https://git.sit.fyi/sit-inbox)
+
+You can still use it for a little while, however, once sit-inbox will get support for
+https/ssh git endpoints, there will be no point in this hook.
+
+---
+
 # SIT Git Hook
 
 One of the important problems when distributing
